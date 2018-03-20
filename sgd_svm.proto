@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+service SGD_SVM {
+    //rpc GetData() returns (DataSample) {};
+    rpc GetData(GradientUpdate) returns (DataSample) {};
+    //rpc GetParameter() returns (Parameter) {};
+}
+
+
+message DataSample {
+    string data_sample = 1;
+    string param = 2;
+    string target =3;
+}
+
+message GradientUpdate {
+    string grad_update = 1;
+}
