@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package project;
+
+
+// Interface exported by the server.
+
+
+
+service SVM {
+  // A simple RPC.
+  //
+  // Obtains the feature at a given position.
+  //
+  rpc GetWeights(stream row) returns (Matrix) {}
+
+  rpc GetData(stream row) returns (Status) {}
+
+
+ 
+}
+
+
+message Row {
+  message Entry{
+    int32 index =1;
+    double value = 2;
+  }
+  string label =1
+  repeated Entry entry = 2;
+
+}
+
+
+message Status {
+  string status =1;
+}
