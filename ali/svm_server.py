@@ -10,14 +10,8 @@ from threading import Thread
 
 _ONE_DAY_IN_SECONDS = 24*3600
 
-def convert_msg_to_matrix(msg):
-    matrix = []
-    for row in msg.rows:
-        row = []
-        for value in row.values:
-            row.append(value)
-        matrix.append(row)
-    return matrix
+
+
 
 
 
@@ -28,6 +22,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         self.data = []
 
     def GetWeights(self, request_iterator, context):
+        # Function used for Getting the weight vector and the batch index to use for training
         indexes = request_iterator.next()
         weights = request_iterator.next()
         print('received {} and {}'.format(indexes.label,weights.label))
@@ -36,6 +31,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
 
     def GetData(self, request_iterator, context):
+        # Used to fetch data from coordinator
         for matrix in request_iterator:
             self.data.append(matrix)
 
@@ -43,6 +39,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
 
 def serve(port):
+    # Creates worker
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     SVM_pb2_grpc.add_SVMServicer_to_server(
         SVMServicer(), server)
@@ -56,6 +53,7 @@ def serve(port):
 
 
 if __name__ == '__main__':
+    # Start nb_workers workers in parallel
     nb_workers = int(sys.argv[1])
     threads = []
     port = 50051

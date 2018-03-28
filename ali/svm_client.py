@@ -8,40 +8,61 @@ from threading import Thread
 
 channels =[]
 
+
 nb_batches = 0
 matrices =None
 responses = None
 def load_data(path_features,path_label,batch_size):
     global nb_batches
+    # Open files
     features  = open(path_features,'r')
     labels = open(path_label,'r')
 
     topics = []
+
+    # Reads all samples
     lines = features.readlines()
+    # Fetch id of positive samples
     lines_labels = set([ int(i) for i in labels.readlines()])
     labels.close()
     features.close()
 
+
     nb_batches = int(len(lines)/batch_size)
     list_data =[]
     labels =[]
+    # Create batches
     for i in range(nb_batches):
         labels.append([])
         list_data.append([])
-        
-    order = np.floor(np.random.permutation(len(lines))/batch_size)
+    
+    # Shuffle data and assign every data point to a batch
+    order = np.random.permutation(len(lines))
+    batch = 0
+    order_map = dict()
+    for i in order:
+        order_map[i] = batch
+        batch = (batch+1)% nb_batches
+
+    # Build the batches
     for index,line in enumerate(lines):
+        # Fetch example id + features
         splitted_line = line.split(' ')
         id_line = splitted_line[0]
         msg_row = SVM_pb2.Row(label = id_line)
         entries = []
+        # Fetch for every non zero feature its index and value
         for i in range(2,len(splitted_line)):
             entry = splitted_line[i].split(':')
+            # Append feature to row entries
             entries.append(SVM_pb2.Entry(index = int(entry[0]),value = float(entry[1])))
         msg_row.entry.extend(entries)
-        list_data[int(order[index])].append(msg_row)
-        labels[int(order[index])].append(1 if int(id_line) in lines_labels else -1)
+
+        # Add row to the corresponding batch
+        list_data[int(order_map[index])].append(msg_row)
+        labels[int(order_map[index])].append(1 if int(id_line) in lines_labels else -1)
     matrices = []
+    # Create batches message objects
     for i in range(nb_batches):
         matrix = SVM_pb2.Matrix(label = 'data')
         matrix.rows.extend(list_data[i])
