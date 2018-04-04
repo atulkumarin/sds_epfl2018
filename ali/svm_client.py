@@ -10,20 +10,23 @@ channels =[]
 
 
 nb_batches = 0
-matrices =None
+matrix =None
 responses = None
-def load_data(path_features,path_label,batch_size):
-    global nb_batches
+lr = None
+reg_factor = None
+weights = {}
+def load_data(path_features,path_label):
     # Open files
     features  = open(path_features,'r')
     labels = open(path_label,'r')
 
     topics = []
-
     # Reads all samples
     lines = features.readlines()
+    nb_data_pt = len(lines)
+
     # Fetch id of positive samples
-    lines_labels = set([ int(i) for i in labels.readlines()])
+    lines_labels = [ int(i) for i in labels.readlines()]
     labels.close()
     features.close()
 
@@ -31,20 +34,10 @@ def load_data(path_features,path_label,batch_size):
     nb_batches = int(len(lines)/batch_size)
     list_data =[]
     labels =[]
-    # Create batches
-    for i in range(nb_batches):
-        labels.append([])
-        list_data.append([])
     
-    # Shuffle data and assign every data point to a batch
-    order = np.random.permutation(len(lines))
-    batch = 0
-    order_map = dict()
-    for i in order:
-        order_map[i] = batch
-        batch = (batch+1)% nb_batches
+  
 
-    # Build the batches
+    # Build the dataset
     for index,line in enumerate(lines):
         # Fetch example id + features
         splitted_line = line.split(' ')
@@ -55,20 +48,18 @@ def load_data(path_features,path_label,batch_size):
         for i in range(2,len(splitted_line)):
             entry = splitted_line[i].split(':')
             # Append feature to row entries
-            entries.append(SVM_pb2.Entry(index = int(entry[0]),value = float(entry[1])))
-        msg_row.entry.extend(entries)
+            msg_row.append(SVM_pb2.Entry(index = int(entry[0]),value = float(entry[1])))
+        msg_row.entries.extend(entries)
 
-        # Add row to the corresponding batch
-        list_data[int(order_map[index])].append(msg_row)
-        labels[int(order_map[index])].append(1 if int(id_line) in lines_labels else -1)
-    matrices = []
+        # Add row to data matrix
+        list_data[i].append(msg_row)
+        labels[i].append(lines_labels[i])
     # Create batches message objects
-    for i in range(nb_batches):
-        matrix = SVM_pb2.Matrix(label = 'data')
-        matrix.rows.extend(list_data[i])
-        matrix.categories.extend(labels[i])
-        matrices.append(matrix)
-    return matrices
+    matrix = SVM_pb2.Matrix(label = 'data')
+    matrix.rows.extend(list_data)
+    matrix.categories.extend(labels)
+
+    return matrix,nb_data_pt
 
 
 
@@ -87,6 +78,7 @@ def vec_sum(vec1, vec2):
 
 def vec_mul(vec1, vec2):
     num_elements = len(vec1)
+
     result = 0
     
     for i in range(num_elements):
@@ -129,23 +121,25 @@ def compute_gradient(param, data_sample, target, lrate=0.2):
 
 def send_data(stub,i):
     global responses
-    responses[i] = stub.GetData(iter(matrices))
+    responses[i] = stub.GetData(iter(matrix))
     return
-        
+def send_weights(stub,i,data):
+    global responses
+    responses[i] = stub.GetWeights(data)
+    return    
 
 def run():
-    global channels,matrices,responses
-    matrices = load_data('../data/lyrl2004_vectors_test_pt0.dat','../data/labels.txt',100)
+    global channels,matrices,responses,lr,reg_factor
+    matrix,nb_data_pt = load_data('../data/lyrl2004_vectors_test_pt0.dat','../data/labels.txt')
     print('Data loaded')
     
-    nb_batches_per_worker = int(len(matrices)/len(channels))
     stubs = []
     for channel in channels :
         stub = SVM_pb2_grpc.SVMStub(grpc.insecure_channel('localhost:{}'.format(channel)))
         stubs.append(stub)
 
     threads = []
-
+    # Send data
     for i,stub in enumerate(stubs):
         thread = Thread(target = send_data, args = (stub,i,))
         thread.start()
@@ -153,29 +147,98 @@ def run():
         
     [th.join() for th in threads]
 
-
     for index,response in enumerate(responses):
         if response.status == 'OK':
             print('Worker {} received data'.format(index))
         else :
             print('Worker {} did not receive data'.format(index))
+    del matrix
+    data_order = list(np.permutation(nb_data_pt))
+    n_epoch = 20
+    epoch= 0
+    i = 0
+    # Training loop
+    while(epoch < n_epoch):
+
+        entries =[] 
+        # create weight msg
+        for  key, value in weights.items():
+            entries.append(SVM_pb2.Entry(index = key ,value = value))
+        msg_row = SVM_pb2.Row()
+        msg_row.extend(entries)
+
+
+        threads = []
+
+        # send weights along with data points indexes
+
+        for j,stub in enumerate(stubs):
+            st = i
+            end = i+batch_size
+            msg = SVM_pb2.WeightUpdate(row = msg_row ,indexes = iter(data_order[st:end]))
+            thread = Thread(target = send_weights, args = (stub,j,msg,))
+            thread.start()
+
+            if i > nb_data_pt:
+                i= 0 
+                epoch +=1
+                data_order = list(np.permutation(nb_data_pt))
+
+            else:
+                i+= batch_size
+
+            threads.append(thread)
+        join_threads(threads)
+        loss = update_weight(nb_data_pt,batch_size,lr,reg_factor)
+
+
+def update_weight(nb_data_pt,batch_size,lr,reg_factor):
+    global weights
+    gradient = {}
+    loss = 0
+    normalizer = len(responses)
+    # TODO : SHOULD WE NORMALIZE BY NB OF WORKERS ?
+    for response in responses:
+        for entry in response.entries:
+            # Loss is stored in the gradient vector with index -1
+            if entry.index == -1:
+                loss += entry.value
+            else:
+                gradient[entry.index] = gradient.get(index,0) + value
+    for k,v in weights.items():
+        gradient[k] += gradient.get(k,0)+v*reg_factor
+        loss += (v**2)*reg_factor
+    for key,value in gradient:
+        # Update weight vector and add regularization
+        weights[key] = weights.get(key,0) + lr*(value)
+
+    return loss
+
+def join_threads(threads):
+    [th.join() for th in threads]
+    return
 
 
 def make_label_file(label_kept,features,labels):
     features  = open(features,'r')
     labels = open(labels,'r')
-    out = open('../data/output.txt','w')
-    ids = set([(i.split(' ')[0]) for i in features.readlines()])
-    for label in labels.readlines():
-        label = label.split(' ')
-        if label[0] == label_kept and label[1] in ids:
-            out.write(label[1]+'\n')
+    out = open('../data/labels.txt','w')
+    ids = [(i.split(' ')[0]) for i in features.readlines()]
+    labels_lines = dict([(x[0],x[1]) for x in labels.readlines().split(' ')])
+    for id_ in ids:
+        line_label = labels_lines[id_]
+        if line_label in label_kept :
+            out.write('1\n')
+        else:
+            out.write('-1\n')
     features.close()
     labels.close()
     out.close()
 
 if __name__ == '__main__':
     nb_workers = int(sys.argv[1])
+    lr = 0.001
+    reg_factor = 0.002
     responses = [None]*nb_workers
     for i in range(nb_workers):
         channels.append(50051+i)

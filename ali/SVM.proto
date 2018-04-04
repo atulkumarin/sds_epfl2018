@@ -8,12 +8,8 @@ package project;
 
 
 service SVM {
-  // A simple RPC.
-  //
-  // Obtains the feature at a given position.
-  //
-  rpc GetWeights(stream Row) returns (Row) {}
 
+  rpc GetWeights(WeightUpdate) returns (Row) {}
   rpc GetData(stream Matrix) returns (Status) {}
 
 
@@ -22,20 +18,21 @@ service SVM {
 
 
 message Matrix {
-  int32 nb_rows = 1;
-  int32 nb_columns = 2;
-  string label =3;
-  repeated Row rows = 4;
-  repeated int32 categories = 5;
+  string label =1;
+  repeated Row rows = 2;
+  repeated int32 categories = 3;
 }
 
 message Row {
-
-  repeated Entry entry = 2;
   string label = 1;
+  repeated Entry entries = 2;
 
 }
-
+message WeightUpdate{
+  Row row = 1;
+  repeated int32 indexes = 2;
+  
+}
 
 message Status {
   string status =1;

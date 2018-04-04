@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='SVM.proto',
   package='project',
   syntax='proto3',
-  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"l\n\x06Matrix\x12\x0f\n\x07nb_rows\x18\x01 \x01(\x05\x12\x12\n\nnb_columns\x18\x02 \x01(\x05\x12\r\n\x05label\x18\x03 \x01(\t\x12\x1a\n\x04rows\x18\x04 \x03(\x0b\x32\x0c.project.Row\x12\x12\n\ncategories\x18\x05 \x03(\x05\"3\n\x03Row\x12\x1d\n\x05\x65ntry\x18\x02 \x03(\x0b\x32\x0e.project.Entry\x12\r\n\x05label\x18\x01 \x01(\t\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32\x64\n\x03SVM\x12,\n\nGetWeights\x12\x0c.project.Row\x1a\x0c.project.Row\"\x00(\x01\x12/\n\x07GetData\x12\x0f.project.Matrix\x1a\x0f.project.Status\"\x00(\x01\x62\x06proto3')
+  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"G\n\x06Matrix\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1a\n\x04rows\x18\x02 \x03(\x0b\x32\x0c.project.Row\x12\x12\n\ncategories\x18\x03 \x03(\x05\"5\n\x03Row\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.project.Entry\":\n\x0cWeightUpdate\x12\x19\n\x03row\x18\x01 \x01(\x0b\x32\x0c.project.Row\x12\x0f\n\x07indexes\x18\x02 \x03(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32k\n\x03SVM\x12\x33\n\nGetWeights\x12\x15.project.WeightUpdate\x1a\x0c.project.Row\"\x00\x12/\n\x07GetData\x12\x0f.project.Matrix\x1a\x0f.project.Status\"\x00(\x01\x62\x06proto3')
 )
 
 
@@ -33,36 +33,22 @@ _MATRIX = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='nb_rows', full_name='project.Matrix.nb_rows', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='nb_columns', full_name='project.Matrix.nb_columns', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='label', full_name='project.Matrix.label', index=2,
-      number=3, type=9, cpp_type=9, label=1,
+      name='label', full_name='project.Matrix.label', index=0,
+      number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='rows', full_name='project.Matrix.rows', index=3,
-      number=4, type=11, cpp_type=10, label=3,
+      name='rows', full_name='project.Matrix.rows', index=1,
+      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='categories', full_name='project.Matrix.categories', index=4,
-      number=5, type=5, cpp_type=1, label=3,
+      name='categories', full_name='project.Matrix.categories', index=2,
+      number=3, type=5, cpp_type=1, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -80,7 +66,7 @@ _MATRIX = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=22,
-  serialized_end=130,
+  serialized_end=93,
 )
 
 
@@ -92,16 +78,16 @@ _ROW = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='entry', full_name='project.Row.entry', index=0,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      name='label', full_name='project.Row.label', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='label', full_name='project.Row.label', index=1,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      name='entries', full_name='project.Row.entries', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -117,8 +103,46 @@ _ROW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=132,
-  serialized_end=183,
+  serialized_start=95,
+  serialized_end=148,
+)
+
+
+_WEIGHTUPDATE = _descriptor.Descriptor(
+  name='WeightUpdate',
+  full_name='project.WeightUpdate',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='row', full_name='project.WeightUpdate.row', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='indexes', full_name='project.WeightUpdate.indexes', index=1,
+      number=2, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=150,
+  serialized_end=208,
 )
 
 
@@ -148,8 +172,8 @@ _STATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=185,
-  serialized_end=209,
+  serialized_start=210,
+  serialized_end=234,
 )
 
 
@@ -186,14 +210,16 @@ _ENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=211,
-  serialized_end=248,
+  serialized_start=236,
+  serialized_end=273,
 )
 
 _MATRIX.fields_by_name['rows'].message_type = _ROW
-_ROW.fields_by_name['entry'].message_type = _ENTRY
+_ROW.fields_by_name['entries'].message_type = _ENTRY
+_WEIGHTUPDATE.fields_by_name['row'].message_type = _ROW
 DESCRIPTOR.message_types_by_name['Matrix'] = _MATRIX
 DESCRIPTOR.message_types_by_name['Row'] = _ROW
+DESCRIPTOR.message_types_by_name['WeightUpdate'] = _WEIGHTUPDATE
 DESCRIPTOR.message_types_by_name['Status'] = _STATUS
 DESCRIPTOR.message_types_by_name['Entry'] = _ENTRY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -211,6 +237,13 @@ Row = _reflection.GeneratedProtocolMessageType('Row', (_message.Message,), dict(
   # @@protoc_insertion_point(class_scope:project.Row)
   ))
 _sym_db.RegisterMessage(Row)
+
+WeightUpdate = _reflection.GeneratedProtocolMessageType('WeightUpdate', (_message.Message,), dict(
+  DESCRIPTOR = _WEIGHTUPDATE,
+  __module__ = 'SVM_pb2'
+  # @@protoc_insertion_point(class_scope:project.WeightUpdate)
+  ))
+_sym_db.RegisterMessage(WeightUpdate)
 
 Status = _reflection.GeneratedProtocolMessageType('Status', (_message.Message,), dict(
   DESCRIPTOR = _STATUS,
@@ -234,15 +267,15 @@ _SVM = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=250,
-  serialized_end=350,
+  serialized_start=275,
+  serialized_end=382,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetWeights',
     full_name='project.SVM.GetWeights',
     index=0,
     containing_service=None,
-    input_type=_ROW,
+    input_type=_WEIGHTUPDATE,
     output_type=_ROW,
     options=None,
   ),

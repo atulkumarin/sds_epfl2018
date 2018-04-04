@@ -15,9 +15,9 @@ class SVMStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.GetWeights = channel.stream_unary(
+    self.GetWeights = channel.unary_unary(
         '/project.SVM/GetWeights',
-        request_serializer=SVM__pb2.Row.SerializeToString,
+        request_serializer=SVM__pb2.WeightUpdate.SerializeToString,
         response_deserializer=SVM__pb2.Row.FromString,
         )
     self.GetData = channel.stream_unary(
@@ -32,12 +32,9 @@ class SVMServicer(object):
 
   """
 
-  def GetWeights(self, request_iterator, context):
-    """A simple RPC.
-
-    Obtains the feature at a given position.
-
-    """
+  def GetWeights(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -52,9 +49,9 @@ class SVMServicer(object):
 
 def add_SVMServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'GetWeights': grpc.stream_unary_rpc_method_handler(
+      'GetWeights': grpc.unary_unary_rpc_method_handler(
           servicer.GetWeights,
-          request_deserializer=SVM__pb2.Row.FromString,
+          request_deserializer=SVM__pb2.WeightUpdate.FromString,
           response_serializer=SVM__pb2.Row.SerializeToString,
       ),
       'GetData': grpc.stream_unary_rpc_method_handler(
