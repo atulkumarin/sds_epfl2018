@@ -11,9 +11,6 @@ service SVM {
 
   rpc GetWeights(WeightUpdate) returns (Row) {}
   rpc GetData(stream Matrix) returns (Status) {}
-
-
- 
 }
 
 
@@ -26,12 +23,11 @@ message Matrix {
 message Row {
   string label = 1;
   repeated Entry entries = 2;
-
 }
+
 message WeightUpdate{
   Row row = 1;
-  repeated int32 indexes = 2;
-  
+  repeated int32 indexes = 2; 
 }
 
 message Status {
