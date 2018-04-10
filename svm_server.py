@@ -52,6 +52,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         target = self.labels[index]
         # Intermediary compute step that will be used for computing loss
         tmp = target*self.vec_mul(weights, data_sample)
+        print("Data = {}".format([(entry.index, entry.value)for entry in data_sample.entries]))
         if (tmp < 1):
             grad = self.scalar_vec_mul(-target, data_sample)
         else:

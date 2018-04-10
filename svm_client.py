@@ -5,6 +5,7 @@ import SVM_pb2_grpc
 import sys 
 import numpy as np
 from threading import Thread
+import matplotlib.pyplot as plt
 
 channels =[]
 
@@ -16,6 +17,7 @@ responses = None
 lr = None
 reg_factor = None
 weights = {}
+losses =[]
 
 def load_data(path_features,path_label):
     # Open files
@@ -47,7 +49,7 @@ def load_data(path_features,path_label):
         msg_row = SVM_pb2.Row(label = id_line)
         entries = []
         # Fetch for every non zero feature its index and value
-        for i in range(2,len(splitted_line)):
+        for i in range(1,len(splitted_line)):
             entry = splitted_line[i].split(':')
             # Append feature to row entries
             entries.append(SVM_pb2.Entry(index = int(entry[0]),value = float(entry[1])))
@@ -55,7 +57,7 @@ def load_data(path_features,path_label):
 
         # Add row to data matrix
         list_data.append(msg_row)
-        labels.append(lines_labels[i])
+        labels.append(lines_labels[index])
     # Create batches message objects
     matrix = SVM_pb2.Matrix(label = 'data')
     matrix.rows.extend(list_data)
@@ -127,7 +129,7 @@ def send_weights(stub,i,data):
 
 
 def run():
-    global channels, matrix, responses, lr, reg_factor, batch_size
+    global channels, matrix, responses, lr, reg_factor, batch_size, losses
     #matrix, nb_data_pt = load_data('./data/train_1000.dat','./data/labels_1000.txt')
     matrix, nb_data_pt = load_data('./data/toy_data.txt','./data/toy_labels.txt')
     print('Data loaded')
@@ -158,14 +160,17 @@ def run():
     epoch = 0
     i = 0
     
-    weights_init=np.random.randn(2)
+    weights_init=[-1,-233]
     
     for i,j in enumerate(weights_init):
         weights[i] = j
     
     
     # Training loop
-    while(epoch < n_epoch):
+    x = 0
+    
+    #while(epoch < n_epoch):
+    while(True):
 
         entries =[] 
         # create weight msg
@@ -186,7 +191,7 @@ def run():
             msg = SVM_pb2.WeightUpdate(row = msg_row ,indexes = iter(data_order[st:end]))
             thread = Thread(target = send_weights, args = (stub,j,msg,))
             thread.start()
-
+            
             if i > nb_data_pt:
                 i= 0 
                 epoch +=1
@@ -198,9 +203,17 @@ def run():
             threads.append(thread)
             
         join_threads(threads)
+        x+=1
+
         loss = update_weight(nb_data_pt,batch_size,lr,reg_factor)
+        losses.append(loss)
+        if(x%20 == 0):
+            plt.plot(list(range(len(losses))), losses)
+            plt.savefig("train.png")
+            plt.close()
         print("Loss = {}".format(loss))
         print("Weights = {}".format(weights))
+        
         
 
 
@@ -222,7 +235,7 @@ def update_weight(nb_data_pt,batch_size,lr,reg_factor):
         loss += (v**2)*reg_factor
     for key,value in gradient.items():
         # Update weight vector and add regularization
-        weights[key] = weights.get(key,0) + lr*(value)
+        weights[key] = weights.get(key,0) - lr*(value)
 
     return loss
 
@@ -249,10 +262,9 @@ def make_label_file(label_kept,features,labels):
 
 if __name__ == '__main__':
     nb_workers = int(sys.argv[1])
-    lr = 0.001
+    lr = 0.0001
     reg_factor = 0
     responses = [None]*nb_workers
     for i in range(nb_workers):
         channels.append(50051+i)
     run()
-    test()
