@@ -9,21 +9,19 @@ from threading import Thread
 
 _ONE_DAY_IN_SECONDS = 24*3600
 
-i = 0
 
 
 class SVMServicer(SVM_pb2_grpc.SVMServicer):
     """Provides methods that implement functionality of route guide server."""
 
     def __init__(self):
-        self.data = []
-        self.labels = []
+        self.file = open('data/labels_balanced.dat','r')
+
 
     def vec_mul(self, vec1, vec2):
         result = 0
-        
-        for elem in vec2.entries:
-            result += elem.value*vec1.get(elem.index,0)
+        for elem in vec2:
+            result += elem[1]*vec1.get(elem[0],0)
             
         return result
 
@@ -41,23 +39,25 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             ret[entry.index] = entry.value
         return ret
 
-
+    def prediction(self,label,pred):
+        ok = (pred >= 0 and label == 1) or (pred < 0 and label == -1)
+        return 1 if ok else 0
 
     def scalar_vec_mul(self, scalar, vec):
-        return dict([(entry.index, entry.value*scalar)for entry in vec.entries])
+        return dict([(entry[0], entry[1]*scalar) for entry in vec])
 
 
-    def compute_gradient(self, weights, index, nb_pts):
-        data_sample = self.data[index]
-        target = self.labels[index]
+    def compute_gradient(self, weights, example,label):
+
         # Intermediary compute step that will be used for computing loss
-        tmp = target*self.vec_mul(weights, data_sample)
-        print("Data = {}".format([(entry.index, entry.value)for entry in data_sample.entries]))
+        tmp = self.vec_mul(weights, example)
+        pred = self.prediction(label,tmp)
+        tmp = tmp*label
         if (tmp < 1):
-            grad = self.scalar_vec_mul(-target, data_sample)
+            grad = self.scalar_vec_mul(-label, example)
         else:
             grad = dict()
-        return grad, tmp
+        return grad,tmp,pred
 
 
     def dict_to_weight_msg(self, dic):
@@ -69,37 +69,65 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         return ret
     
     def GetWeights(self, weightUpdate, context):
-        global i
-        i += 1
-        print("Iteration #{} ".format(i), end=" ")
-        # Function used for Getting the weight vector and the batch index to use for training
+        # Function used for computing the weight vector
+
         indexes = weightUpdate.indexes
-        #print("Indices : {}".format(indexes))
+        examples,labels = self.load_data(indexes)
         weights = self.weight_msg_to_dict(weightUpdate.row)
         #print('received {} and {}'.format(indexes.label,weights.label))
         #return SVM_pb2.Row(label = 'OK')
         grad = {}
         loss = 0
+        accuracy = 0
         nb_pts = len(indexes)
-        for index in indexes:
-            sub_grad,sub_loss = self.compute_gradient(weights, index, nb_pts)
+        for i in range(len(indexes)):
+            sub_grad,sub_loss,pred = self.compute_gradient(weights, examples[i],labels[i])
+            accuracy+= pred
             self.add_to(grad,sub_grad)
             loss += max(0,1-sub_loss)
-        grad[-1] = loss
+        accuracy = float(accuracy)/nb_pts
+        grad[-1] = loss/nb_pts
+        grad[-2] = accuracy
         
+
         #print("Grad={}".format(grad))
         return self.dict_to_weight_msg(grad)
 
     def GetData(self, matrix, context):
         # Used to fetch data from coordinator
-        self.data = matrix.rows
-        self.labels = matrix.categories
-        return SVM_pb2.Status(status = 'OK')
+        self.data_indexes = matrix
+        self.file = open('data/data_balanced.dat','r')
 
+        return SVM_pb2.Status(status = 'OK') 
+    def load_data(self,indexes):
+        # Fetch data pts from file
+        batch_examples = []
+        batch_labels =[]
+        for idx in indexes :
+            self.file.seek(idx)
+            sample_ = self.file.readline()
+            sample = sample_.split(' ')
+            entries = []
+            # Fetch for every non zero feature its index and value
+            for i in range(2,len(sample)-1):
+                entry = sample[i].split(':')
+                # Append feature to row entries
+                entries.append((int(entry[0]),float(entry[1])))
+            #entries.append((-3,1.0))
+
+            batch_examples.append(entries)
+            #try:
+            if sample[-1].strip() == '':
+                print(idx)
+            batch_labels.append(int(sample[-1].strip()))
+            # except ValueError:
+            #     print('LINE ID : {}'.format(sample[0]))
+
+        return batch_examples,batch_labels
 
 def serve(port):
     # Creates worker
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     SVM_pb2_grpc.add_SVMServicer_to_server(
         SVMServicer(), server)
     server.add_insecure_port('[::]:'+str(port))

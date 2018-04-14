@@ -6,11 +6,12 @@ import sys
 import numpy as np
 from threading import Thread
 import matplotlib.pyplot as plt
+from random import shuffle
 
 channels =[]
 
 
-#nb_batches = 0
+nb_batches = 0
 batch_size = 1
 matrix =None
 responses = None
@@ -18,53 +19,45 @@ lr = None
 reg_factor = None
 weights = {}
 losses =[]
+accuracies =[]
 
-def load_data(path_features,path_label):
-    # Open files
-    features  = open(path_features,'r')
-    labels = open(path_label,'r')
-
-    #topics = []
-    # Reads all samples
-    lines = features.readlines()
-    nb_data_pt = len(lines)
-
-    # Fetch id of positive samples
-    lines_labels = [ int(i) for i in labels.readlines()]
-    labels.close()
-    features.close()
-
-
-    #nb_batches = int(len(lines)/batch_size)
-    list_data =[]
-    labels =[]
-    
-  
-
-    # Build the dataset
-    for index,line in enumerate(lines):
-        # Fetch example id + features
-        splitted_line = line.split(' ')
-        id_line = splitted_line[0]
-        msg_row = SVM_pb2.Row(label = id_line)
-        entries = []
-        # Fetch for every non zero feature its index and value
-        for i in range(1,len(splitted_line)):
-            entry = splitted_line[i].split(':')
-            # Append feature to row entries
-            entries.append(SVM_pb2.Entry(index = int(entry[0]),value = float(entry[1])))
+def test_acc():
+    #TODO : TEST
+        global test_data
+        for  key, value in weights.items():
+            entries.append(SVM_pb2.Entry(index = key ,value = value))
+            
+        msg_row = SVM_pb2.Row()
         msg_row.entries.extend(entries)
 
-        # Add row to data matrix
-        list_data.append(msg_row)
-        labels.append(lines_labels[index])
-    # Create batches message objects
-    matrix = SVM_pb2.Matrix(label = 'data')
-    matrix.rows.extend(list_data)
-    matrix.categories.extend(labels)
 
-    return matrix,nb_data_pt
+        for j,stub in enumerate(stubs):
 
+            if i > nb_data_pt:
+                i= 0 
+                epoch +=1
+                #data_order = shuffle(data_order)
+            st = i
+            end = min(i+batch_size,nb_data_pt-1)
+            msg = SVM_pb2.WeightUpdate(row = msg_row ,indexes = data_indexes[st:end])
+            #thread = Thread(target = send_weights, args = (stub,j,msg,))
+            future = send_weights(stub,j,msg)
+            #thread.start()
+            i+= batch_size
+
+        collect_results()
+
+def load_data_and_get_points(path):
+    # Open files 
+    #labels = open(path_label,'r')
+    map_point_to_seek = [0]
+    cnt = 0
+    with open(path,'r') as features_and_labels:
+        for line in iter(features_and_labels.readline, ''):
+                cnt+=1
+                map_point_to_seek.append(features_and_labels.tell())
+
+    return map_point_to_seek[:-1],cnt
 
 def scalar_vec_mul(scalar, vec):
     return [scalar*i for i in vec]
@@ -85,90 +78,44 @@ def vec_mul(vec1, vec2):
         
     return result
     
-    
-def mat_mul(mat1, mat2):
-    """mat1 is (_n x _m)
-       mat2 is (_m x _p )
-       resulting matrix will be (_n x _p)
-    """
-    _n = len(mat1)
-    _m = len(mat1[0])
-    _p = len(mat2[0])
-    
-    result = [[0 for x in range(_p)] for y in range(_n)] 
-    
-    for i in range(_n):
-        for j in range(_p):
-            for k in range(_m):
-                result[i][j] += mat1[i][k]*mat2[k][j]
-        
-    return result
-    
 
-def compute_gradient(param, data_sample, target, lrate=0.2):
-    
-    if (target*vec_mul(param, data_sample) < 1):
-        grad = scalar_vec_mul(-1*target, data_sample)
-    else:
-        grad = [0 for x in range(len(param))]
-    
-    grad = vec_sum(grad, scalar_vec_mul(2*lrate, param))
-
-    return grad
-    
-
-def send_data(stub,i):
+def send_data(stub,i,data):
     global responses
-    responses[i] = stub.GetData(matrix)
+    responses[i] = stub.GetData(data)
     return
 
 def send_weights(stub,i,data):
     global responses
-    responses[i] = stub.GetWeights(data)
+    responses[i] = stub.GetWeights.future(data)
     return    
-
+def collect_results():
+    global responses
+    for i in range(len(responses)):
+        responses[i] = responses[i].result()
 
 def run():
     global channels, matrix, responses, lr, reg_factor, batch_size, losses
     #matrix, nb_data_pt = load_data('./data/train_1000.dat','./data/labels_1000.txt')
-    matrix, nb_data_pt = load_data('./data/toy_data.txt','./data/toy_labels.txt')
-    print('Data loaded')
-    
+    indexes, nb_data_pt = load_data_and_get_points('data/labels_balanced.dat')
+    print('seek positions loaded')
+    # connect to stubs and Send seek positions
     stubs = []
     for channel in channels :
         stub = SVM_pb2_grpc.SVMStub(grpc.insecure_channel('localhost:{}'.format(channel)))
         stubs.append(stub)
 
     threads = []
-    # Send data
-    for i,stub in enumerate(stubs):
-        thread = Thread(target = send_data, args = (stub,i,))
-        thread.start()
-        threads.append(thread)
-        
-    [th.join() for th in threads]
 
-    for index,response in enumerate(responses):
-        if response.status == 'OK':
-            print('Worker {} received data'.format(index))
-        else :
-            print('Worker {} did not receive data'.format(index))
-    del matrix
-        
-    data_order = list(np.random.permutation(nb_data_pt))
+
     n_epoch = 20
     epoch = 0
     i = 0
     
-    weights_init=[-1,-233]
-    
-    for i,j in enumerate(weights_init):
-        weights[i] = j
-    
-    
+    data_indexes = indexes
+    shuffle(indexes)
+
     # Training loop
     x = 0
-    
     #while(epoch < n_epoch):
     while(True):
 
@@ -181,38 +128,47 @@ def run():
         msg_row.entries.extend(entries)
 
 
-        threads = []
+        #threads = []
 
         # send weights along with data points indexes
 
         for j,stub in enumerate(stubs):
-            st = i
-            end = i+batch_size
-            msg = SVM_pb2.WeightUpdate(row = msg_row ,indexes = iter(data_order[st:end]))
-            thread = Thread(target = send_weights, args = (stub,j,msg,))
-            thread.start()
-            
+
             if i > nb_data_pt:
                 i= 0 
                 epoch +=1
-                data_order = list(np.random.permutation(nb_data_pt))
+                #data_order = shuffle(data_order)
+            st = i
+            end = min(i+batch_size,nb_data_pt-1)
+            msg = SVM_pb2.WeightUpdate(row = msg_row ,indexes = data_indexes[st:end])
+            #thread = Thread(target = send_weights, args = (stub,j,msg,))
+            future = send_weights(stub,j,msg)
+            #thread.start()
+            i+= batch_size
 
-            else:
-                i+= batch_size
-
-            threads.append(thread)
+            #threads.append(thread)
             
-        join_threads(threads)
+        #join_threads(threads)
+        collect_results()
+        print('it #{}'.format(x))
         x+=1
 
-        loss = update_weight(nb_data_pt,batch_size,lr,reg_factor)
+        loss,acc = update_weight(nb_data_pt,batch_size,lr,reg_factor)
         losses.append(loss)
+        accuracies.append(acc)
         if(x%20 == 0):
             plt.plot(list(range(len(losses))), losses)
-            plt.savefig("train.png")
+            plt.savefig("train_loss.png")
             plt.close()
+            plt.plot(list(range(len(accuracies))), accuracies)
+            plt.savefig("train_acc.png")
+            plt.close()
+            print('Plot Saved')
+
+
+
         print("Loss = {}".format(loss))
-        print("Weights = {}".format(weights))
+        #print("Weights = {}".format(weights))
         
         
 
@@ -221,23 +177,28 @@ def update_weight(nb_data_pt,batch_size,lr,reg_factor):
     global weights
     gradient = {}
     loss = 0
-    normalizer = len(responses)
-    # TODO : SHOULD WE NORMALIZE BY NB OF WORKERS ?
+    accuracy = 0
     for response in responses:
         for entry in response.entries:
             # Loss is stored in the gradient vector with index -1
             if entry.index == -1:
                 loss += entry.value
+            elif entry.index == -2:
+                accuracy += entry.value
             else:
                 gradient[entry.index] = gradient.get(entry.index,0) + entry.value
+    accuracy = accuracy/len(responses)
+    loss = loss/len(responses)
     for k, v in weights.items():
         gradient[k] = gradient.get(k,0) + v*reg_factor
         loss += (v**2)*reg_factor
+
+
     for key,value in gradient.items():
         # Update weight vector and add regularization
         weights[key] = weights.get(key,0) - lr*(value)
 
-    return loss
+    return loss,accuracy
 
 def join_threads(threads):
     [th.join() for th in threads]
@@ -262,7 +223,7 @@ def make_label_file(label_kept,features,labels):
 
 if __name__ == '__main__':
     nb_workers = int(sys.argv[1])
-    lr = 0.0001
+    lr = 0.1
     reg_factor = 0
     responses = [None]*nb_workers
     for i in range(nb_workers):
