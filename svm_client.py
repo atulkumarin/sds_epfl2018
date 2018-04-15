@@ -54,7 +54,9 @@ def run():
     print('Seek positions loaded.')
     
     stubs = []
+    
     for channel in channels :
+
         stub = SVM_pb2_grpc.SVMStub(grpc.insecure_channel('localhost:{}'.format(channel)))
         stubs.append(stub)
 
@@ -87,6 +89,7 @@ def run():
             if x % 10 == 0 and x != 0:
                 
                 if k > test_nb_data_pt:
+
                     epoch += 1
                     break
 
@@ -100,7 +103,9 @@ def run():
             else:
 		
                 flag = 0
-                if i > nb_data_pt:
+                
+		if i > nb_data_pt:
+                    
                     i = 0 
                     epoch += 1
                     
@@ -222,10 +227,14 @@ def join_threads(threads):
     return
 
 if __name__ == '__main__':
+
     nb_workers = int(sys.argv[1])
     lr = 0.1
     reg_factor = 0
     responses = [None] * nb_workers
+    
     for i in range(nb_workers):
+        
         channels.append(50051 + i)
+    
     run()
