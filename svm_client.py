@@ -40,8 +40,10 @@ def send_weights(stub, i, data):
 def collect_results():
 
     global responses
+    
     for i in range(len(responses)):
-        responses[i] = responses[i].result()
+        
+	responses[i] = responses[i].result()
 
 def run():
 
