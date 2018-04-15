@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='SVM.proto',
   package='project',
   syntax='proto3',
-  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"G\n\x06Matrix\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1a\n\x04rows\x18\x02 \x03(\x0b\x32\x0c.project.Row\x12\x12\n\ncategories\x18\x03 \x03(\x05\"5\n\x03Row\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.project.Entry\":\n\x0cWeightUpdate\x12\x19\n\x03row\x18\x01 \x01(\x0b\x32\x0c.project.Row\x12\x0f\n\x07indexes\x18\x02 \x03(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32i\n\x03SVM\x12\x33\n\nGetWeights\x12\x15.project.WeightUpdate\x1a\x0c.project.Row\"\x00\x12-\n\x07GetData\x12\x0f.project.Matrix\x1a\x0f.project.Status\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"G\n\x06Matrix\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1a\n\x04rows\x18\x02 \x03(\x0b\x32\x0c.project.Row\x12\x12\n\ncategories\x18\x03 \x03(\x05\"5\n\x03Row\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.project.Entry\"I\n\x0cWeightUpdate\x12\x19\n\x03row\x18\x01 \x01(\x0b\x32\x0c.project.Row\x12\x0f\n\x07indexes\x18\x02 \x03(\x03\x12\r\n\x05label\x18\x03 \x01(\t\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32i\n\x03SVM\x12\x33\n\nGetWeights\x12\x15.project.WeightUpdate\x1a\x0c.project.Row\"\x00\x12-\n\x07GetData\x12\x0f.project.Matrix\x1a\x0f.project.Status\"\x00\x62\x06proto3')
 )
 
 
@@ -124,8 +124,15 @@ _WEIGHTUPDATE = _descriptor.Descriptor(
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='indexes', full_name='project.WeightUpdate.indexes', index=1,
-      number=2, type=5, cpp_type=1, label=3,
+      number=2, type=3, cpp_type=2, label=3,
       has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='label', full_name='project.WeightUpdate.label', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -142,7 +149,7 @@ _WEIGHTUPDATE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=150,
-  serialized_end=208,
+  serialized_end=223,
 )
 
 
@@ -172,8 +179,8 @@ _STATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=210,
-  serialized_end=234,
+  serialized_start=225,
+  serialized_end=249,
 )
 
 
@@ -210,8 +217,8 @@ _ENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=236,
-  serialized_end=273,
+  serialized_start=251,
+  serialized_end=288,
 )
 
 _MATRIX.fields_by_name['rows'].message_type = _ROW
@@ -267,8 +274,8 @@ _SVM = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=275,
-  serialized_end=380,
+  serialized_start=290,
+  serialized_end=395,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetWeights',

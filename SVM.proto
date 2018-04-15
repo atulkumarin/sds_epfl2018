@@ -28,7 +28,7 @@ message Row {
 message WeightUpdate{
   Row row = 1;
   repeated int64 indexes = 2; 
-  string label = 3
+  string label = 3;
 }
 
 message Status {
