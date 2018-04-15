@@ -78,14 +78,15 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
              entries.append(SVM_pb2.Entry(index = key, value = value))
 
-        ret.entries.extend(entries)  #iter??
+        ret.entries.extend(entries)
+
         return ret
     
     def GetWeights(self, weightUpdate, context):
         
         label = weightUpdate.label
         indexes = weightUpdate.indexes
-        examples,labels = self.load_data(indexes, label)
+        examples, labels = self.load_data(indexes, label)
         weights = self.weight_msg_to_dict(weightUpdate.row)
 
         grad = {}
@@ -117,7 +118,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
     def load_data(self, indexes, label):
 
         batch_examples = []
-        batch_labels =[]
+        batch_labels = []
 
         for idx in indexes :
 
@@ -157,14 +158,17 @@ def serve(port):
     server.start()
 
     try:
+
         while True:
+
             time.sleep(_ONE_DAY_IN_SECONDS)
 
     except KeyboardInterrupt:
+
         server.stop(0)
 
 if __name__ == '__main__':
-    # Start nb_workers workers in parallel
+
     nb_workers = int(sys.argv[1])
     threads = []
     port = 50051
@@ -177,4 +181,5 @@ if __name__ == '__main__':
         port += 1
 
     for thread in threads:
+
         thread.join()
