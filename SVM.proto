@@ -2,40 +2,33 @@ syntax = "proto3";
 
 package project;
 
-
 // Interface exported by the server.
-
-
 
 service SVM {
 
   rpc GetWeights(WeightUpdate) returns (Row) {}
-  rpc GetData(Matrix) returns (Status) {}
-}
-
-
-message Matrix {
-  string label = 1;
-  repeated Row rows = 2;
-  repeated int32 categories = 3;
 }
 
 message Row {
+
   string label = 1;
   repeated Entry entries = 2;
 }
 
 message WeightUpdate{
+
   Row row = 1;
   repeated int64 indexes = 2; 
   string label = 3;
 }
 
 message Status {
+
   string status = 1;
 }
 
 message Entry{
+
   int32 index = 1 ;
   double value = 2;
 }

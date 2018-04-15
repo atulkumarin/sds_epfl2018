@@ -7,7 +7,6 @@ from threading import Thread
 import matplotlib.pyplot as plt
 from random import shuffle
 
-#matrix = None
 channels = []
 batch_size = 80
 responses = None
@@ -31,35 +30,7 @@ def load_data_and_get_points(path):
             map_point_to_seek.append(features_and_labels.tell())
 
     return map_point_to_seek[:-1], cnt
-
-def scalar_vec_mul(scalar, vec):
     
-    return [scalar * i for i in vec]
-
-def scalar_vec_sum(scalar, vec):
-    
-    return [scalar + i for i in vec]
-
-def vec_sum(vec1, vec2):
-    
-    return [vec1[i] + vec2[i] for i in range(len(vec1))]
-
-def vec_mul(vec1, vec2):
-    
-    num_elements = len(vec1)
-    result = 0
-    
-    for i in range(num_elements):
-        result += vec1[i] * vec2[i]
-        
-    return result
-    
-def send_data(stub,i,data):
-
-    global responses
-    responses[i] = stub.GetData(data)
-    return
-
 def send_weights(stub,i,data):
 
     global responses
@@ -181,8 +152,7 @@ def run():
 
             print("Loss = {}\n".format(loss))
             #print("Weights = {}".format(weights))
-        
-        
+             
 def test_metric():
 
     global weights

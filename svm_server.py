@@ -15,7 +15,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         self.file = open('data/labels_balanced.dat','r')
         self.file1 = open('data/test_labels_balanced.dat', 'r')
 
-
     def vec_mul(self, vec1, vec2):
 
         result = 0
@@ -26,8 +25,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             
         return result
 
-
-    def add_to(self, vec,sub_vec):
+    def add_to(self, vec, sub_vec):
 
         for key, val in sub_vec.items():
 
@@ -45,7 +43,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
         return ret
 
-
     def prediction(self, label, pred):
 
         ok = (pred >= 0 and label == 1) or (pred < 0 and label == -1)
@@ -55,7 +52,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
     def scalar_vec_mul(self, scalar, vec):
 
         return dict([(entry[0], entry[1] * scalar) for entry in vec])
-
 
     def compute_gradient(self, weights, example,label):
 
@@ -72,7 +68,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             grad = dict()
 
         return grad, tmp, pred
-
 
     def dict_to_weight_msg(self, dic):
 
@@ -119,13 +114,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
         return self.dict_to_weight_msg(grad)
 
-    def GetData(self, matrix, context):
-
-        self.data_indexes = matrix
-        self.file = open('data/data_balanced.dat','r')
-
-        return SVM_pb2.Status(status = 'OK') 
-
     def load_data(self, indexes, label):
 
         batch_examples = []
@@ -160,7 +148,6 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             batch_labels.append(int(sample[-1].strip()))
             
         return batch_examples, batch_labels
-
 
 def serve(port):
 
