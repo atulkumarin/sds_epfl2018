@@ -31,7 +31,7 @@ def load_data_and_get_points(path):
 
     return map_point_to_seek[:-1], cnt
     
-def send_weights(stub,i,data):
+def send_weights(stub, i, data):
 
     global responses
     responses[i] = stub.GetWeights.future(data)
