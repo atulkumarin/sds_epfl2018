@@ -10,176 +10,184 @@ _ONE_DAY_IN_SECONDS = 24*3600
 
 class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
-    def __init__(self):
+	def __init__(self):
+		'''opening both training and test files	'''
+		self.file = open('data/labels_balanced.dat','r')
+		self.file1 = open('data/test_labels_balanced.dat', 'r')
 
-        self.file = open('data/labels_balanced.dat','r')
-        self.file1 = open('data/test_labels_balanced.dat', 'r')
+	def vec_mul(self, vec1, vec2):
+		'''dot product of two sparse vectors	'''
+		result = 0
 
-    def vec_mul(self, vec1, vec2):
+		for elem in vec2:
 
-        result = 0
+			result += elem[1] * vec1.get(elem[0], 0)
+			
+		return result
 
-        for elem in vec2:
+	def add_to(self, vec, sub_vec):
+		'''sum of two sparse vectors	'''
 
-            result += elem[1] * vec1.get(elem[0], 0)
-            
-        return result
+		for key, val in sub_vec.items():
 
-    def add_to(self, vec, sub_vec):
+			vec[key] = vec.get(key, 0) + val
 
-        for key, val in sub_vec.items():
+		return
 
-            vec[key] = vec.get(key, 0) + val
+	def weight_msg_to_dict(self, msg):
+		'''converts the received proto message into a dictionary	'''
 
-        return
+		ret = {}
 
-    def weight_msg_to_dict(self, msg):
+		for entry in msg.entries:
 
-        ret = {}
+			ret[entry.index] = entry.value
 
-        for entry in msg.entries:
+		return ret
 
-            ret[entry.index] = entry.value
+	def prediction(self, label, pred):
+		'''performs predictions	'''
 
-        return ret
+		ok = (pred >= 0 and label == 1) or (pred < 0 and label == -1)
 
-    def prediction(self, label, pred):
+		return 1 if ok else 0
 
-        ok = (pred >= 0 and label == 1) or (pred < 0 and label == -1)
+	def scalar_vec_mul(self, scalar, vec):
+		'''computes multiplication of a scalar with a vector	'''
 
-        return 1 if ok else 0
+		return dict([(entry[0], entry[1] * scalar) for entry in vec])
 
-    def scalar_vec_mul(self, scalar, vec):
+	def compute_gradient(self, weights, example,label):
+		'''compute gradient for a given training examples	'''
 
-        return dict([(entry[0], entry[1] * scalar) for entry in vec])
+		tmp = self.vec_mul(weights, example)
+		pred = self.prediction(label, tmp)
+		tmp = tmp * label
 
-    def compute_gradient(self, weights, example,label):
+		if (tmp < 1):
 
-        tmp = self.vec_mul(weights, example)
-        pred = self.prediction(label, tmp)
-        tmp = tmp * label
+			grad = self.scalar_vec_mul(-label, example)
 
-        if (tmp < 1):
+		else:
 
-            grad = self.scalar_vec_mul(-label, example)
+			grad = dict()
 
-        else:
+		return grad, tmp, pred
 
-            grad = dict()
+	def dict_to_weight_msg(self, dic):
+		'''converts a dictionary into a proto message	'''
 
-        return grad, tmp, pred
+		ret = SVM_pb2.Row(label = 'weight')
+		entries = []
 
-    def dict_to_weight_msg(self, dic):
+		for key, value in dic.items():
 
-        ret = SVM_pb2.Row(label = 'weight')
-        entries = []
+			 entries.append(SVM_pb2.Entry(index = key, value = value))
 
-        for key, value in dic.items():
+		ret.entries.extend(entries)
 
-             entries.append(SVM_pb2.Entry(index = key, value = value))
+		return ret
+	
+	def GetWeights(self, weightUpdate, context):
+		'''receives weight indices from the client and calls relevant functions to compute wight update, returns the updated weight back to the client	'''
+		
+		label = weightUpdate.label
+		indexes = weightUpdate.indexes
+		examples, labels = self.load_data(indexes, label)
+		weights = self.weight_msg_to_dict(weightUpdate.row)
 
-        ret.entries.extend(entries)
+		grad = {}
+		loss = 0
+		accuracy = 0
+		nb_pts = len(indexes)
 
-        return ret
-    
-    def GetWeights(self, weightUpdate, context):
-        
-        label = weightUpdate.label
-        indexes = weightUpdate.indexes
-        examples, labels = self.load_data(indexes, label)
-        weights = self.weight_msg_to_dict(weightUpdate.row)
+		for i in range(len(indexes)):
 
-        grad = {}
-        loss = 0
-        accuracy = 0
-        nb_pts = len(indexes)
+			if label == 'train':
 
-        for i in range(len(indexes)):
+				sub_grad, sub_loss, pred = self.compute_gradient(weights, examples[i], labels[i])
+				accuracy += pred
+				self.add_to(grad,sub_grad)
+				loss += max(0, 1 - sub_loss)
 
-            if label == 'train':
+			else:
 
-                sub_grad, sub_loss, pred = self.compute_gradient(weights, examples[i], labels[i])
-                accuracy += pred
-                self.add_to(grad,sub_grad)
-                loss += max(0, 1 - sub_loss)
+				_, sub_loss, pred = self.compute_gradient(weights, examples[i], labels[i])
+				accuracy += pred
+				loss += max(0, 1 - sub_loss)
 
-            else:
+		accuracy = float(accuracy)/nb_pts
+		grad[-1] = loss/nb_pts
+		grad[-2] = accuracy
 
-                _, sub_loss, pred = self.compute_gradient(weights, examples[i], labels[i])
-                accuracy += pred
-                loss += max(0, 1 - sub_loss)
+		return self.dict_to_weight_msg(grad)
 
-        accuracy = float(accuracy)/nb_pts
-        grad[-1] = loss/nb_pts
-        grad[-2] = accuracy
+	def load_data(self, indexes, label):
+		'''load the relevant examples into main memory using the seek positions sent by the client	'''
+		batch_examples = []
+		batch_labels = []
 
-        return self.dict_to_weight_msg(grad)
+		for idx in indexes :
 
-    def load_data(self, indexes, label):
+			if label == 'train':
 
-        batch_examples = []
-        batch_labels = []
+				self.file.seek(idx)
+				sample_ = self.file.readline()
 
-        for idx in indexes :
+			else:
 
-            if label == 'train':
+				self.file1.seek(idx)
+				sample_ = self.file1.readline()
 
-                self.file.seek(idx)
-                sample_ = self.file.readline()
+			sample = sample_.split(' ')
+			entries = []
 
-            else:
+			for i in range(2, len(sample) - 1):
 
-                self.file1.seek(idx)
-                sample_ = self.file1.readline()
+				entry = sample[i].split(':')
+				entries.append((int(entry[0]), float(entry[1])))
 
-            sample = sample_.split(' ')
-            entries = []
+			batch_examples.append(entries)
 
-            for i in range(2, len(sample) - 1):
+			if sample[-1].strip() == '':
 
-                entry = sample[i].split(':')
-                entries.append((int(entry[0]), float(entry[1])))
+				print(idx)
 
-            batch_examples.append(entries)
-
-            if sample[-1].strip() == '':
-
-                print(idx)
-
-            batch_labels.append(int(sample[-1].strip()))
-            
-        return batch_examples, batch_labels
+			batch_labels.append(int(sample[-1].strip()))
+			
+		return batch_examples, batch_labels
 
 def serve(port):
+	'''starts the server	'''
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers = 10))
-    SVM_pb2_grpc.add_SVMServicer_to_server(SVMServicer(), server)
-    server.add_insecure_port('[::]:' + str(port))
-    server.start()
+	server = grpc.server(futures.ThreadPoolExecutor(max_workers = 10))
+	SVM_pb2_grpc.add_SVMServicer_to_server(SVMServicer(), server)
+	server.add_insecure_port('[::]:' + str(port))
+	server.start()
 
-    try:
+	try:
 
-        while True:
+		while True:
 
-            time.sleep(_ONE_DAY_IN_SECONDS)
+			time.sleep(_ONE_DAY_IN_SECONDS)
 
-    except KeyboardInterrupt:
+	except KeyboardInterrupt:
 
-        server.stop(0)
+		server.stop(0)
 
 if __name__ == '__main__':
 
-    nb_workers = int(sys.argv[1])
-    threads = []
-    port = 50051
+	nb_workers = int(sys.argv[1])
+	threads = []
+	port = 50051
 
-    for i in range(nb_workers):
+	for i in range(nb_workers):
 
-        thread = Thread(target = serve, args = (port, ))
-        thread.start()
-        threads.append(thread)
-        port += 1
+		thread = Thread(target = serve, args = (port, ))
+		thread.start()
+		threads.append(thread)
+		port += 1
 
-    for thread in threads:
+	for thread in threads:
 
-        thread.join()
+		thread.join()
