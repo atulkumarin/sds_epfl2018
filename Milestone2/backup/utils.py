@@ -30,7 +30,7 @@ def ele_vec_mul(vec1, vec2):
 def add_to(vec, sub_vec, res_vector=None):
     '''sum of two sparse vectors    '''
 
-    result = {} if res_vector is None else res_vector
+    result = vec if res_vector is None else res_vector
 
     for key, val in sub_vec.items():
 
@@ -155,7 +155,6 @@ def dict_to_weight_msg(dic, label = ''):
     entries = []
 
     for key, value in dic.items():
-
         entries.append(SVM_pb2.Entry(index=key, value=value))
 
     ret.entries.extend(entries)
@@ -198,6 +197,7 @@ def load_data(file_path, nb_sample=None):
     examples = []
     labels = []
     du = {}
+    count=0
     with open(file_path) as data:
         for sample_ in data:
 
@@ -207,10 +207,11 @@ def load_data(file_path, nb_sample=None):
                         continue
                 else:
                     break
+            count += 1
 
             sample = sample_.split(' ')
             entries = []
-            for i in range(2, len(sample) - 1):
+            for i in range(1, len(sample)):
                 entry = sample[i].split(':')
                 entries.append((int(entry[0]), float(entry[1])))
 
@@ -219,4 +220,5 @@ def load_data(file_path, nb_sample=None):
             examples.append(entries)
             labels.append(int(sample[0].strip()))
 
-    return examples, labels, du
+    random_indices = random.sample(range(count), count)
+    return [examples[i] for i in random_indices], [labels[i] for i in random_indices], du

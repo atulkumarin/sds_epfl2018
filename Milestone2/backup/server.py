@@ -17,6 +17,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         self.val_target = []
         self.batch_size = config.batch_size
         self.lr = config.lr
+        self._async = config._async
         self.rcv_grads = {}
         self.coordinator_address = None
         self.workers_address = None
@@ -33,6 +34,10 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         self.test_after = config.test_after
         self.currently_computed_elem = -1
         self.currently_computed_elem_lock = Lock()
+        self.sync_num_rcvgrads = 0
+        self.iter_num=0
+        self.start=0
+        self.complete = False
         if is_worker:
             # each entry is a data point represented as a dict
             self.data, self.target, self.du = load_data(config.train_data_path)
@@ -54,7 +59,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
                 worker.SendCompletionSignal(SVM_pb2.Null())
 
         self.complete = True
-        self.my_server.stop(0)
+        #self.my_server.stop(0)
 
         return SVM_pb2.Null()
 
@@ -70,10 +75,18 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
 
         return SVM_pb2.Null()
 
+    def GetUpdate(self, request, context):
+        if not isinstance(request, SVM_pb2.Null):
+            self.update_weight(weight_msg_to_dict(request))
+        if self.start >= len(self.data):
+            self.start = 0
+        return self.start_computation_worker_synch()    
+
     def Start(self, request, context):
-        if self.is_worker:
-            print('[INFO] Worker {} started computing'.format(self.worker_nb))
-            self.start_computation_worker_asynch()
+        print('[INFO] Worker {} started computing'.format(self.worker_nb))
+        self.start_computation_worker_asynch()
+
+        return SVM_pb2.Null()
 
     def SendNodeInfo(self, request, context):
         '''send/get information about ports and ips of other workers and co-ordinator '''
@@ -109,6 +122,20 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             del weightUpdate[-1]
             del weightUpdate[-2]
             self.update_weight(weightUpdate)
+            
+            if not self._async:
+                add_to(self.rcv_grads, weightUpdate, res_vector=self.rcv_grads)
+                self.sync_num_rcvgrads += 1
+
+            #    if self.sync_num_rcvgrads == len(self.worker_stubs):
+            #        self.sync_num_rcvgrads = 0
+                    
+            #        for worker in self.worker_stubs:
+            #            grad_msg = dict_to_weight_msg(self.rcv_grads)
+            #            grad_msg.iteration_number = -1
+            #            grad_msg.worker_nb = -1
+            #            worker.Start.future(grad_msg)
+
             cond = False
             with self.currently_computed_elem_lock:
                 thresh_test = iter_num - self.currently_computed_elem
@@ -144,7 +171,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         iter_num = 0
         start, end = 0, self.batch_size
         epoch = 0
-        while iter_num < self.tot_iter:  # change for stopping criteria
+        while iter_num < self.tot_iter and not self.complete:  # change for stopping criteria
             # training start
             if start >= len(self.data):
                 start, end = 0, self.batch_size
@@ -176,6 +203,26 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             end += self.batch_size
 
         self.coordinator_stub.SendCompletionSignal(SVM_pb2.Null())
+
+    def start_computation_worker_synch(self):
+        start, end = self.start, self.start + self.batch_size
+
+        grad, acc, loss = compute_gradient(self, range(start,end))
+        grad_msg = dict_to_weight_msg(grad)
+        grad_msg.iteration_number = self.iter_num
+        grad_msg.worker_nb = self.worker_nb
+
+        grad_msg.entries.extend([SVM_pb2.Entry(index=-1, value=loss)])
+        grad_msg.entries.extend([SVM_pb2.Entry(index=-2, value=acc)])
+
+        self.coordinator_stub.GetWeights(grad_msg)
+
+        self.iter_num += 1
+
+        self.start += self.batch_size
+
+        #self.coordinator_stub.SendCompletionSignal(SVM_pb2.Null())
+        return SVM_pb2.Null()
 
     def compute_test(self):
         print('[INFO] Started computing validation Loss and acc')

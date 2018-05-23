@@ -12,8 +12,10 @@ try:
     print('[INFO] LOADED ALL WORKERS')
 
     coordinator = Coordinator()
-    coordinator.start_(configuration.coordinator_channel, servers)
+    c = coordinator.start_(configuration.coordinator_channel, servers)
     print('[INFO] LOADED COORD')
+    
+    coordinator.start_train(c)
 
     while(True):
         time.sleep(3600 * 24)

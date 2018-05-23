@@ -40,6 +40,11 @@ class SVMStub(object):
         request_serializer=SVM__pb2.Null.SerializeToString,
         response_deserializer=SVM__pb2.Null.FromString,
         )
+    self.GetUpdate = channel.unary_unary(
+        '/project.SVM/GetUpdate',
+        request_serializer=SVM__pb2.Row.SerializeToString,
+        response_deserializer=SVM__pb2.Null.FromString,
+        )
 
 
 class SVMServicer(object):
@@ -82,6 +87,13 @@ class SVMServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetUpdate(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_SVMServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -108,6 +120,11 @@ def add_SVMServicer_to_server(servicer, server):
       'Start': grpc.unary_unary_rpc_method_handler(
           servicer.Start,
           request_deserializer=SVM__pb2.Null.FromString,
+          response_serializer=SVM__pb2.Null.SerializeToString,
+      ),
+      'GetUpdate': grpc.unary_unary_rpc_method_handler(
+          servicer.GetUpdate,
+          request_deserializer=SVM__pb2.Row.FromString,
           response_serializer=SVM__pb2.Null.SerializeToString,
       ),
   }

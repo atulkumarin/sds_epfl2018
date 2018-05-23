@@ -6,6 +6,7 @@ import SVM_pb2_grpc
 from server import SVMServicer
 from utils import *
 from time import sleep
+from threading import Thread
 
 ##
 import configuration as config
@@ -55,10 +56,54 @@ class Coordinator():
             futures_.append(stub.SendNodeInfo.future(msg))
 
         [x.result() for x in futures_]
-        [for x in coordinator.worker_stubs]
+        #[for x in coordinator.worker_stubs]
+        
+        return coordinator
 
-        for worker in coordinator.worker_stubs:
-            worker.Start.future(SVM_pb2.Null())
+    def start_train(self, coordinator): 
+        
+        if coordinator._async:
+        
+            threads=[]
+
+            msg = SVM_pb2.Null()
+
+            for worker in coordinator.worker_stubs:
+                thread = Thread(target=worker.Start,args=(msg,))
+                thread.start()
+                threads.append(thread)
+                #worker.Start.future(SVM_pb2.Null())
+
+            [x.join() for x in threads]
+
+        else:
+            futures_ = []
+            for worker in coordinator.worker_stubs:
+                grad_msg = dict_to_weight_msg(coordinator.rcv_grads)
+                grad_msg.iteration_number = -1
+                grad_msg.worker_nb = -1
+                futures_.append(worker.GetUpdate.future(grad_msg))
+
+            [x.result() for x in futures_]
+
+            while coordinator.iter_num < coordinator.tot_iter:
+                if coordinator.sync_num_rcvgrads == len(coordinator.worker_stubs):
+                    coordinator.sync_num_rcvgrads = 0
+                    coordinator.iter_num += 1
+                     
+                    grad_msg = dict_to_weight_msg(coordinator.rcv_grads)
+                    coordinator.rcv_grads = {}
+                    grad_msg.iteration_number = -1
+                    grad_msg.worker_nb = -1      
+                    
+                    futures_ = []
+                    for worker in coordinator.worker_stubs:
+                        #grad_msg = dict_to_weight_msg(coordinator.rcv_grads)
+                        #grad_msg.iteration_number = -1
+                        #grad_msg.worker_nb = -1
+                        futures_.append(worker.GetUpdate.future(grad_msg))
+
+                    [x.result() for x in futures_]
+
         #while(not coordinator.complete):
             #sleep(30)
-        return server

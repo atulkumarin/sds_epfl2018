@@ -10,6 +10,7 @@ service SVM {
     rpc SendLearningInfo(Learning_Config) returns (Null) {}
     rpc SendCompletionSignal(Null) returns (Null) {}
     rpc Start(Null) returns (Null) {}
+    rpc GetUpdate(Row) returns (Null) {}
 }
 
 message Null { }
