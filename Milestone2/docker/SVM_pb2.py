@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='SVM.proto',
   package='project',
   syntax='proto3',
-  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"\x06\n\x04Null\"V\n\x0bNode_Config\x12\x1b\n\x13\x63oordinator_address\x18\x01 \x01(\t\x12\x17\n\x0fworkers_address\x18\x02 \x03(\t\x12\x11\n\tworker_nb\x18\x03 \x01(\x05\"P\n\x0fLearning_Config\x12\n\n\x02lr\x18\x01 \x01(\x02\x12\x10\n\x08tot_iter\x18\x02 \x01(\x02\x12\x12\n\nbatch_size\x18\x03 \x01(\x05\x12\x0b\n\x03reg\x18\x04 \x01(\x02\"b\n\x03Row\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.project.Entry\x12\x18\n\x10iteration_number\x18\x03 \x01(\x05\x12\x11\n\tworker_nb\x18\x04 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32\x89\x02\n\x03SVM\x12+\n\nGetWeights\x12\x0c.project.Row\x1a\r.project.Null\"\x00\x12\x35\n\x0cSendNodeInfo\x12\x14.project.Node_Config\x1a\r.project.Null\"\x00\x12=\n\x10SendLearningInfo\x12\x18.project.Learning_Config\x1a\r.project.Null\"\x00\x12\x36\n\x14SendCompletionSignal\x12\r.project.Null\x1a\r.project.Null\"\x00\x12\'\n\x05Start\x12\r.project.Null\x1a\r.project.Null\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tSVM.proto\x12\x07project\"\x06\n\x04Null\"V\n\x0bNode_Config\x12\x1b\n\x13\x63oordinator_address\x18\x01 \x01(\t\x12\x17\n\x0fworkers_address\x18\x02 \x03(\t\x12\x11\n\tworker_nb\x18\x03 \x01(\x05\"P\n\x0fLearning_Config\x12\n\n\x02lr\x18\x01 \x01(\x02\x12\x10\n\x08tot_iter\x18\x02 \x01(\x02\x12\x12\n\nbatch_size\x18\x03 \x01(\x05\x12\x0b\n\x03reg\x18\x04 \x01(\x02\"b\n\x03Row\x12\r\n\x05label\x18\x01 \x01(\t\x12\x1f\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x0e.project.Entry\x12\x18\n\x10iteration_number\x18\x03 \x01(\x05\x12\x11\n\tworker_nb\x18\x04 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\t\"%\n\x05\x45ntry\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x01\x32\xb4\x02\n\x03SVM\x12+\n\nGetWeights\x12\x0c.project.Row\x1a\r.project.Null\"\x00\x12\x35\n\x0cSendNodeInfo\x12\x14.project.Node_Config\x1a\r.project.Null\"\x00\x12=\n\x10SendLearningInfo\x12\x18.project.Learning_Config\x1a\r.project.Null\"\x00\x12\x36\n\x14SendCompletionSignal\x12\r.project.Null\x1a\r.project.Null\"\x00\x12\'\n\x05Start\x12\r.project.Null\x1a\r.project.Null\"\x00\x12)\n\tGetUpdate\x12\x0c.project.Row\x1a\x0c.project.Row\"\x00\x62\x06proto3')
 )
 
 
@@ -326,7 +326,7 @@ _SVM = _descriptor.ServiceDescriptor(
   index=0,
   options=None,
   serialized_start=366,
-  serialized_end=631,
+  serialized_end=674,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetWeights',
@@ -371,6 +371,15 @@ _SVM = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_NULL,
     output_type=_NULL,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetUpdate',
+    full_name='project.SVM.GetUpdate',
+    index=5,
+    containing_service=None,
+    input_type=_ROW,
+    output_type=_ROW,
     options=None,
   ),
 ])
@@ -424,6 +433,11 @@ try:
           request_serializer=Null.SerializeToString,
           response_deserializer=Null.FromString,
           )
+      self.GetUpdate = channel.unary_unary(
+          '/project.SVM/GetUpdate',
+          request_serializer=Row.SerializeToString,
+          response_deserializer=Row.FromString,
+          )
 
 
   class SVMServicer(object):
@@ -466,6 +480,13 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
+    def GetUpdate(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
 
   def add_SVMServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -493,6 +514,11 @@ try:
             servicer.Start,
             request_deserializer=Null.FromString,
             response_serializer=Null.SerializeToString,
+        ),
+        'GetUpdate': grpc.unary_unary_rpc_method_handler(
+            servicer.GetUpdate,
+            request_deserializer=Row.FromString,
+            response_serializer=Row.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -526,6 +552,10 @@ try:
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def Start(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetUpdate(self, request, context):
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
@@ -565,6 +595,11 @@ try:
       pass
       raise NotImplementedError()
     Start.future = None
+    def GetUpdate(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      # missing associated documentation comment in .proto file
+      pass
+      raise NotImplementedError()
+    GetUpdate.future = None
 
 
   def beta_create_SVM_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -574,6 +609,7 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
+      ('project.SVM', 'GetUpdate'): Row.FromString,
       ('project.SVM', 'GetWeights'): Row.FromString,
       ('project.SVM', 'SendCompletionSignal'): Null.FromString,
       ('project.SVM', 'SendLearningInfo'): Learning_Config.FromString,
@@ -581,6 +617,7 @@ try:
       ('project.SVM', 'Start'): Null.FromString,
     }
     response_serializers = {
+      ('project.SVM', 'GetUpdate'): Row.SerializeToString,
       ('project.SVM', 'GetWeights'): Null.SerializeToString,
       ('project.SVM', 'SendCompletionSignal'): Null.SerializeToString,
       ('project.SVM', 'SendLearningInfo'): Null.SerializeToString,
@@ -588,6 +625,7 @@ try:
       ('project.SVM', 'Start'): Null.SerializeToString,
     }
     method_implementations = {
+      ('project.SVM', 'GetUpdate'): face_utilities.unary_unary_inline(servicer.GetUpdate),
       ('project.SVM', 'GetWeights'): face_utilities.unary_unary_inline(servicer.GetWeights),
       ('project.SVM', 'SendCompletionSignal'): face_utilities.unary_unary_inline(servicer.SendCompletionSignal),
       ('project.SVM', 'SendLearningInfo'): face_utilities.unary_unary_inline(servicer.SendLearningInfo),
@@ -605,6 +643,7 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
+      ('project.SVM', 'GetUpdate'): Row.SerializeToString,
       ('project.SVM', 'GetWeights'): Row.SerializeToString,
       ('project.SVM', 'SendCompletionSignal'): Null.SerializeToString,
       ('project.SVM', 'SendLearningInfo'): Learning_Config.SerializeToString,
@@ -612,6 +651,7 @@ try:
       ('project.SVM', 'Start'): Null.SerializeToString,
     }
     response_deserializers = {
+      ('project.SVM', 'GetUpdate'): Row.FromString,
       ('project.SVM', 'GetWeights'): Null.FromString,
       ('project.SVM', 'SendCompletionSignal'): Null.FromString,
       ('project.SVM', 'SendLearningInfo'): Null.FromString,
@@ -619,6 +659,7 @@ try:
       ('project.SVM', 'Start'): Null.FromString,
     }
     cardinalities = {
+      'GetUpdate': cardinality.Cardinality.UNARY_UNARY,
       'GetWeights': cardinality.Cardinality.UNARY_UNARY,
       'SendCompletionSignal': cardinality.Cardinality.UNARY_UNARY,
       'SendLearningInfo': cardinality.Cardinality.UNARY_UNARY,

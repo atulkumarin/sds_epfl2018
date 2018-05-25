@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sgd
+  labels:
+    app: sgd
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: sgd
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sgd
+spec:
+  selector:
+    matchLabels:
+      app: sgd # has to match .spec.template.metadata.labels
+  serviceName: "sgd"
+  replicas: 4 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: sgd # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+      - name: worker
+        image: aliostux/worker:latest
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "750m"
+        volumeMounts:
+        - mountPath: "/data"
+          name: cs449g5-scratch
+        ports:
+        - containerPort: 50051
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NUMBER_REPLICAS
+          value: "4"
+        - name: TRAIN_DATA_PATH
+          value: "/data/datasets/lyrl2004_vectors_train.dat"
+        - name: TEST_DATA_PATH
+          value: "/data/datasets/lyrl2004_vectors_test_pt0.dat"
+        - name: TEST_DATA_PATH_1
+          value: "/data/datasets/lyrl2004_vectors_test_pt1.dat"
+        - name: TEST_DATA_PATH_2
+          value: "/data/datasets/lyrl2004_vectors_test_pt2.dat"
+        - name: TEST_DATA_PATH_3
+          value: "/data/datasets/lyrl2004_vectors_test_pt3.dat"
+        - name: LABEL_DATA_PATH
+          value: "/data/datasets/rcv1-v2.topics.qrels"
+        - name: LOG_FILE
+          value: /data/out.txt
+        - name: lr
+          value: "0.1"
+        - name: tot_iter
+          value: "1500"
+        - name: reg
+          value: "0.1"
+        - name: ASNYCH
+          value: '1'
+        - name: val_data_size
+          value: "2000"
+        - name: test_after
+          value: "100"
+        - name: proba_sample
+          value: "0.8"
+        - name: batch_size
+          value: "32"
+      volumes:
+      volumes:
+      - name: cs449g5-scratch
+        persistentVolumeClaim:
+          claimName: cs449g5-scratch
+
+# TODO: ADD LIMITS CPU/MEM

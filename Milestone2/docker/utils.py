@@ -27,14 +27,13 @@ def ele_vec_mul(vec1, vec2):
     return result
 
 
-def add_to(vec, sub_vec, res_vector=None):
+def add_to(vec, sub_vec, inplace=False):
     '''sum of two sparse vectors    '''
 
-    result = {} if res_vector is None else res_vector
+    result = vec if inplace else vec.copy()
 
     for key, val in sub_vec.items():
-
-        result[key] = vec.get(key, 0) + val
+        result[key] = result.get(key, 0) + val
 
     return result
 
@@ -54,9 +53,9 @@ def weight_msg_to_dict(msg):
 def prediction(label, pred):
     '''performs predictions '''
 
-    ok = pred*label
+    ok = label*pred
 
-    return 1 if (ok > 0) else 0
+    return 1 if (ok >=0) else 0
 
 
 def scalar_vec_mul(scalar, vec):
@@ -69,7 +68,7 @@ def scalar_vec_mul(scalar, vec):
     return ret
 
 
-def calc_reg(servicer, sample):
+def calc_reg(params, du, reg, sample):
     '''
         INPUT:
         Servicer : SVM SERVICE
@@ -78,14 +77,14 @@ def calc_reg(servicer, sample):
     regularizer = {}
     if type(sample) == list:
         for entry in sample:
-            elem = servicer.params.get(entry[0], 0)
-            regularizer[entry[0]] = elem * elem / servicer.du.get(entry[0], 0)
+            elem = params.get(entry[0], 0)
+            regularizer[entry[0]] = elem * elem / du.get(entry[0], 1)
     else:
         for entry in sample:
-            elem = servicer.params.get(entry, 0)
-            regularizer[entry] = elem * elem / servicer.du.get(entry, 0)
+            elem = params.get(entry, 0)
+            regularizer[entry] = elem * elem / du.get(entry, 1)
 
-    return functools.reduce(lambda x, y: x + y, regularizer.values()) * servicer.reg
+    return functools.reduce(lambda x, y: x + y, regularizer.values()) * reg
 
 
 def calc_reg_grad(servicer, sample):
@@ -104,7 +103,6 @@ def calc_reg_grad(servicer, sample):
 
 def compute_gradient(servicer, random_indices):
     '''compute gradient for a given training examples   '''
-
 
     def compute_sub_gradient(weights, example, label):
         '''compute gradient for a given training examples   '''
@@ -125,10 +123,10 @@ def compute_gradient(servicer, random_indices):
 
         grad_pt = add_to(grad_pt, reg_grad_pt)
 
+        loss_pt = max(0, 1 - tmp_pt) + calc_reg(servicer.params,
+                                                servicer.du, servicer.reg, example)
 
-        loss_pt = max(0, 1 - tmp_pt) + calc_reg(servicer, example)
         return grad_pt, loss_pt, acc_pt
-
 
     batch_grad = {}
     final_acc = 0
@@ -147,7 +145,7 @@ def compute_gradient(servicer, random_indices):
     return batch_grad, final_acc, final_loss
 
 
-def dict_to_weight_msg(dic, label = ''):
+def dict_to_weight_msg(dic, label=''):
     '''converts a dictionary into a proto message   '''
 
     ret = SVM_pb2.Row(label=label)
@@ -167,15 +165,22 @@ def compute_loss_acc(servicer, data, target):
     loss = 0
     acc = 0
 
-    for idx,d in enumerate(data):
-        tmp = vec_mul(servicer.params, d)
-        loss += max(0, 1 - tmp) + calc_reg(servicer, d)
-
-        if tmp * target[idx] >= 0:
-            acc += 1
+    for idx, d in enumerate(data):
+        loss_pt, acc_pt = compute_loss_acc_pt(
+            d, target[idx], servicer.params, servicer.du, servicer.reg)
+        loss += loss_pt
+        acc += acc_pt
 
     acc /= len(target)
     loss /= len(target)
+    return loss, acc
+
+
+def compute_loss_acc_pt(data, target, weight, du, reg):
+
+    tmp = vec_mul(weight, data)
+    acc = prediction(target, tmp)
+    loss = max(0, 1 - tmp) + calc_reg(weight, du, reg, data)
     return loss, acc
 
 
@@ -192,7 +197,7 @@ def replace(from_, by, in_place=True):
     return buff
 
 
-def load_data(file_path, nb_sample=None,proba_sample=None):
+def load_data(file_path, nb_sample=None, proba_sample=None):
     '''load the relevant examples into main memory using the seek positions sent by the client  '''
     examples = []
     labels = []
@@ -218,3 +223,90 @@ def load_data(file_path, nb_sample=None,proba_sample=None):
             examples.append(entries)
             labels.append(int(sample[0]))
     return examples, labels, du
+
+
+def load_data_real(file_path, label_file, nb_sample_per_class=None, proba_sample=None, class_='CCAT', compute_du=True):
+    '''load the relevant examples into main memory using the seek positions sent by the client  '''
+    examples = []
+    labels = []
+    du = None
+    if compute_du:
+        du = {}
+    pos = 0
+    neg = 0
+    labels_data_file = None
+
+    with open(label_file) as labels_file_:
+        labels_data_file = labels_file_.readlines()
+    base = int(labels_data_file[0].split(' ')[1])
+    end = int(labels_data_file[-1].split(' ')[1])
+    labels_all = [-1] * (end - base +1)
+
+    for line in labels_data_file:
+        line = line.split(' ')
+        idx = int(line[1]) - base
+        if (line[0] == class_):
+            labels_all[idx] = 1
+
+    del labels_data_file
+    with open(file_path) as data:
+        # idx = 0
+        for sample_ in data:
+            sample = sample_.split(' ')
+            label = labels_all[int(sample[0]) - base]
+            if (nb_sample_per_class is not None):
+                if(pos < nb_sample_per_class or neg < nb_sample_per_class):
+
+                    neg_thresh = (label == -1 and neg >= nb_sample_per_class)
+                    pos_thresh = (label == 1 and pos >= nb_sample_per_class)
+
+                    if (random.random() > proba_sample) or neg_thresh or pos_thresh:
+                        continue
+                else:
+                    break
+            if label == 1:
+                pos += 1
+            else:
+                neg += 1
+            entries = []
+            for i in range(2, len(sample)):
+                entry = sample[i].split(':')
+                entries.append((int(entry[0]), float(entry[1])))
+                if compute_du:
+                    du[int(entry[0])] = du.get(int(entry[0]), 0) + 1
+
+            examples.append(entries)
+            labels.append(label)
+
+            # if idx < 3:
+            #     print(label,entries)
+            #     print(int(sample[0]))
+            # idx+=1
+
+    return examples, labels, du, base, labels_all
+
+
+def compute_du(file_path):
+    du = {}
+    idx = 0
+    with open(file_path) as data:
+        for sample_ in data:
+            sample = sample_.split(' ')
+            idx+=1
+            for i in range(2, len(sample)):
+                entry = sample[i].split(':')
+                du[int(entry[0])] = du.get(int(entry[0]), 0) + 1
+    return du
+
+
+def preprocess_line(line, labels_all, base):
+    line = line.split(' ')
+    try:
+        label = labels_all[int(line[0]) - base]
+    except IndexError:
+        print('[ERROR] line_nb:{} base:{} len:{}'.format(int(line[0]),base,len(labels_all)))
+    entries = []
+    for i in range(2, len(line)):
+        entry = line[i].split(':')
+        entries.append((int(entry[0]), float(entry[1])))
+    return entries, label

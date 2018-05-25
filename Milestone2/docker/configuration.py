@@ -1,14 +1,10 @@
 import os
 
-lr = 0.1
-val_split = 0.15
-tot_iter = 5000
-batch_size = 128
-reg = 0.01
-_async = True  # True or False
-val_data_size = 2000
-test_after = 50
-train_data_path = os.environ['TRAIN_FILE_PATH']
-test_data_path = os.environ['TEST_FILE_PATH']
+lr = float(os.environ['lr'])
+tot_iter = int(os.environ['tot_iter'])
+batch_size = int(os.environ['batch_size'])
+reg = float(os.environ['reg'])
+val_data_size = int(os.environ['val_data_size'])
+test_after = int(os.environ['test_after'])
 log_file_path = os.environ['LOG_FILE']
-proba_sample = 0.5
+proba_sample = float(os.environ['proba_sample'])

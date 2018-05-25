@@ -22,20 +22,24 @@ spec:
     matchLabels:
       app: sgd # has to match .spec.template.metadata.labels
   serviceName: "sgd"
-  replicas: 3 # by default is 1
+  replicas: 4 # by default is 1
   template:
     metadata:
       labels:
         app: sgd # has to match .spec.selector.matchLabels
     spec:
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 0
       containers:
       - name: worker
         image: worker
         imagePullPolicy: Never
         volumeMounts:
-        - mountPath: /test-pd
-          name: test-volume
+        - mountPath: /code
+          name: code-volume
+        - mountPath: /data
+          name: data-volume
+        # - mountPath: "/usr/share/"
+        #   name: cs449g5-scratch
         ports:
         - containerPort: 50051
         env:
@@ -48,25 +52,50 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: NUMBER_REPLICAS
-          value: "3"
-        - name: DATA_DIR
-          value: "/usr/share/datasets/"
-        - name: TRAIN_FILE
-          value: "lyrl2004_vectors_train.dat"
-        - name: LABEL_FILE
-          value: "rcv1-v2.topics.qrels"
-        - name: TEST_FILE_PATH
-          value: ccat_test_data.dat
-        - name: TRAIN_FILE_PATH
-          value: ccat_train_data.dat
+          value: "4"
+        - name: TRAIN_DATA_PATH
+          value: "/data/lyrl2004_vectors_train.dat"
+        - name: TEST_DATA_PATH
+          value: "/data/lyrl2004_vectors_test_pt0.dat"
+        - name: TEST_DATA_PATH_1
+          value: "/data/lyrl2004_vectors_test_pt1.dat"
+        - name: TEST_DATA_PATH_2
+          value: "/data/lyrl2004_vectors_test_pt2.dat"
+        - name: TEST_DATA_PATH_3
+          value: "/data/lyrl2004_vectors_test_pt3.dat"
+        - name: LABEL_DATA_PATH
+          value: "/data/rcv1-v2.topics.qrels"
         - name: LOG_FILE
-          value: out.txt
+          value: /data/out.txt
+        - name: lr
+          value: "0.1"
+        - name: tot_iter
+          value: "1000"
+        - name: reg
+          value: "0"
+        - name: ASNYCH
+          value: '1'
+        - name: val_data_size
+          value: "2000"
+        - name: test_after
+          value: "100"
+        - name: proba_sample
+          value: "0.8"
+        - name: batch_size
+          value: "32"
       volumes:
-      - name: test-volume
+      - name: code-volume
         hostPath:
           # directory location on host
           path: /Users/alialami-idrissi/Documents/MA2/systems_for_DS/project/sds_epfl2018/Milestone2/docker
+      - name: data-volume
+        hostPath:
+          # directory location on host
+          path: /Users/alialami-idrissi/Documents/MA2/systems_for_DS/project/sds_epfl2018/Milestone2/data
           # this field is optional
-          type: Directory
+      #     type: Directory
+      # - name: cs449g5-scratch
+      #   persistentVolumeClaim:
+      #     claimName: cs449g5-scratch
 
 # TODO: ADD LIMITS CPU/MEM
