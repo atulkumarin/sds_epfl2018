@@ -172,9 +172,9 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
         nb_nodes = int(os.environ['NUMBER_REPLICAS'])
         self.worker_nb = int(os.environ['MY_POD_NAME'].split('-')[1])
         if(int(os.environ['ASNYCH'])):
-            data_len = (len(self.data) / nb_nodes)
-            self.data = self.data[int(
-                data_len * self.worker_nb):int(data_len * self.worker_nb + data_len)]
+            #data_len = (len(self.data) / nb_nodes)
+            #self.data = self.data[int(
+            #    data_len * self.worker_nb):int(data_len * self.worker_nb + data_len)]
             all_nodes = list(range(nb_nodes - 1))
             del all_nodes[self.worker_nb]
             for i in all_nodes:
@@ -193,6 +193,7 @@ class SVMServicer(SVM_pb2_grpc.SVMServicer):
             grpc.insecure_channel(self.coordinator_address))
 
         if self.is_worker:
+            print("data size:{}".format(len(self.data)))
             print('[INFO] WORKER {} received all addresses'.format(self.worker_nb))
         return SVM_pb2.Null()
 

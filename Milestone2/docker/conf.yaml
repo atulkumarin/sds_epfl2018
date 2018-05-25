@@ -70,7 +70,7 @@ spec:
         - name: lr
           value: "0.1"
         - name: tot_iter
-          value: "1000"
+          value: "5000"
         - name: reg
           value: "0"
         - name: ASNYCH
@@ -87,11 +87,11 @@ spec:
       - name: code-volume
         hostPath:
           # directory location on host
-          path: /Users/alialami-idrissi/Documents/MA2/systems_for_DS/project/sds_epfl2018/Milestone2/docker
+          path: "/Users/atul/Documents/EPFL/2nd/CS449 - Systems for Data Science/FinalCode/sds_epfl2018/Milestone2/docker"
       - name: data-volume
         hostPath:
           # directory location on host
-          path: /Users/alialami-idrissi/Documents/MA2/systems_for_DS/project/sds_epfl2018/Milestone2/data
+          path: "/Users/atul/Documents/EPFL/2nd/CS449 - Systems for Data Science/FinalCode/sds_epfl2018/Milestone2/data"
           # this field is optional
       #     type: Directory
       # - name: cs449g5-scratch
