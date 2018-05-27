@@ -1,1 +1,0 @@
-screen -d -m tail -f conf.yaml

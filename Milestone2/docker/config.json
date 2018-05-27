@@ -1,0 +1,20 @@
+{
+	"nb_pods": 4,
+	"TRAIN_DATA_PATH": "/data/datasets/lyrl2004_vectors_train.dat",
+	"TEST_DATA_PATH": "/data/datasets/lyrl2004_vectors_test_pt0.dat",
+	"TEST_DATA_PATH_1": "/data/datasets/lyrl2004_vectors_test_pt1.dat",
+	"TEST_DATA_PATH_2": "/data/datasets/lyrl2004_vectors_test_pt2.dat",
+	"TEST_DATA_PATH_3": "/data/datasets/lyrl2004_vectors_test_pt3.dat",
+	"LABEL_DATA_PATH": "/data/datasets/rcv1-v2.topics.qrels",
+	"LOG_FILE": "/data/out.txt",
+	"lr": "0.1",
+	"reg": "0.1",
+	"tot_iter": "1000",
+	"val_data_size": "2000",
+	"test_after": "100",
+	"proba_sample": "1",
+	"batch_size": "32",
+	"claim_name": "cs449g5-scratch",
+	"ASYNCH": "1"
+
+}

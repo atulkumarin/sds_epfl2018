@@ -1,3 +1,0 @@
-Protobuf
-grpcio-tools==1.6.3
-grpcio==1.6.3

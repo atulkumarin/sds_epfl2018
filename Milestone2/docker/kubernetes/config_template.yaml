@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sgd
+  labels:
+    app: sgd
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: sgd
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sgd
+spec:
+  selector:
+    matchLabels:
+      app: sgd 
+  serviceName: "sgd"
+  replicas: {nb_pods} # Number of pods (1 coordinator+ workers) -- NEED TO BE EQUAL TO "NUMBER_REPLICAS"
+  template:
+    metadata:
+      labels:
+        app: sgd 
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+      - name: worker
+        image: aliostux/worker:latest
+        resources: # Change this more more or less resources
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "750m"
+        volumeMounts: 
+        - mountPath: "/data" #Persistant storage mount path
+          name: data-volume
+        ports:
+        - containerPort: 50051
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NUMBER_REPLICAS # Number of pods (1 coordinator+ workers) -- NEED TO BE EQUAL TO replicas
+          value: "{nb_pods}"
+        - name: TRAIN_DATA_PATH # Training file path
+          value: "{TRAIN_DATA_PATH}"
+        - name: TEST_DATA_PATH # Test file path
+          value: "{TEST_DATA_PATH}"
+        - name: TEST_DATA_PATH_1 # Test file path
+          value: "{TEST_DATA_PATH_1}"
+        - name: TEST_DATA_PATH_2 # Test file path
+          value: "{TEST_DATA_PATH_2}"
+        - name: TEST_DATA_PATH_3 # Test file path
+          value: "{TEST_DATA_PATH_3}"
+        - name: LABEL_DATA_PATH # labels file path
+          value: "{LABEL_DATA_PATH}"
+        - name: LOG_FILE # Log file path
+          value: /data/out.txt
+        - name: LOG_FOLDER # Folder where the weight vector will be saved at the end
+          value: /data
+        - name: lr # Learning rate
+          value: "{lr}"
+        - name: tot_iter # Number of iterations
+          value: "{tot_iter}"
+        - name: reg # Regularization rate
+          value: "{reg}"
+        - name: ASNYCH # Asynchronous mode flag
+          value: "{ASYNCH}"
+        - name: val_data_size # Number of samples per class in the validation sets
+          value: "{val_data_size}"
+        - name: test_after # Validation frequency
+          value: "{test_after}"
+        - name: proba_sample # Sampling probability for validation set
+          value: "{proba_sample}"
+        - name: batch_size # Training batch size
+          value: "{batch_size}"
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim: 
+          claimName: {claim_name} #Persistant storage claim name
